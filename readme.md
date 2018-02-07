@@ -27,3 +27,6 @@
 ### --job_name=worker --ps_hosts=192.168.1.160:11111 --worker_hosts=192.168.1.160:22222,192.168.1.161:33333 --task_id=0
 ### 计算节点1
 ### --job_name=worker --ps_hosts=192.168.1.160:11111 --worker_hosts=192.168.1.160:22222,192.168.1.161:33333 --task_id=1
+
+### tensorflow运行完之后ctrl+z停止之后彻底停止
+### ps -ef|grep python|grep -v grep|cut -c 9-15|xargs kill -9
