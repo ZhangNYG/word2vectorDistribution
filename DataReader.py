@@ -11,10 +11,13 @@
 from six.moves import xrange
 import hdfs
 import collections
+import WindowsDidtributionWord2vector
 ##############################
 # 参数设置
-VOCABULARY_SIZE = 20000
-COUNTER_VOCABULARY_SIZE = 25000
+VOCABULARY_SIZE = WindowsDidtributionWord2vector.VOCABULARY_SIZE
+# hadoop中的路径
+HADOOP_IP_PORT = WindowsDidtributionWord2vector.HADOOP_IP_PORT
+HADOOP_PATH = WindowsDidtributionWord2vector.HADOOP_PATH
 
 def read_data(client,filename):
     with client.read(filename,encoding='utf-8') as f:
@@ -50,15 +53,16 @@ def build_dic(collectionsCounter):
 ####################################################################################
 # 读取数据
 if __name__ == '__main__':
-    # hadoop中的路径
-    HADOOP_IP_PORT = "http://192.168.1.160:50070"
-    HADOOP_PATH = ["/hadoopTest/","/hadoopTest1/","/hadoopTest2/"]
-    client = hdfs.Client(HADOOP_IP_PORT, root="/", timeout=500, session=False)
 
+    client = hdfs.Client(HADOOP_IP_PORT, root="/", timeout=500, session=False)
+    # 存储文件路径名
+    path_file_dict = dict()
     collectionsCounter = collections.Counter()
     for file_path in HADOOP_PATH:  # 三种数据集
         fileList = client.list(file_path)
         for file_loop in fileList:  # 每个数据集中有一批数据
+            # 对路径进行储存
+            path_file_dict[file_path + file_loop] = len(path_file_dict) + 1
             # 产生读取每个文件
             words = read_data(client, file_path + file_loop)
             print("文件路径名称： ", file_path + file_loop, '    Data size: ', len(words))
@@ -73,6 +77,15 @@ if __name__ == '__main__':
     f_count = open('count_data.txt', 'w', encoding='utf-8')
     f_count.write(str(count))
     f_count.close()
+    # 存储的文件路径名
+    reverse_path_file_dict = dict(zip(path_file_dict.values(), path_file_dict.keys()))
+    print(reverse_path_file_dict,len(reverse_path_file_dict))
+    # 保存hadoop中所有文件路径键值对
+    f_count = open('reverse_path_file_dict.txt', 'w', encoding='utf-8')
+    f_count.write(str(reverse_path_file_dict))
+    f_count.close()
+
+
 
     #aaa = collectionsCounter
 
