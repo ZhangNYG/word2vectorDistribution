@@ -83,7 +83,7 @@ NUM_SKIPS = 2  # How many times to reuse an input to generate a label.
 VALID_SIZE = 16  # Random set of words to evaluate similarity on.
 VALID_WINDOW = 100  # Only pick dev samples in the head of the distribution.
 VALID_EXAMPLES = np.random.choice(VALID_WINDOW, VALID_SIZE, replace=False)
-NUM_SAMPLED = 8  # Number of negative examples to sample. NUM_SAMPLED = 64  这个是负样本个数，正样本的个数
+NUM_SAMPLED = 2  # Number of negative examples to sample. NUM_SAMPLED = 64  这个是负样本个数，正样本的个数
 
 
 # 在这是1(labels的第二个维度)，
@@ -369,10 +369,10 @@ def main(_):
         # 对所取文件循环
         one_com_num = len(reverse_path_file_dict) // NUM_COMPUTER
         start_num = FLAGS.task_id * one_com_num + 1
-        current_num = start_num
+        current_num = start_num - 1
         client = hdfs.Client(HADOOP_IP_PORT, root="/", timeout=500, session=False)
-        #轮数
-        circle_num = 0
+        # 轮数
+        circle_num = 1
         # 在一个文件中读取到的词汇位置
 
         global global_data_index
@@ -389,13 +389,19 @@ def main(_):
                 # //返回商的整数部分
                 # 8个文件4台机器，start_num = 0*（8/4）+1=1
                 #                 start_num = 1*（8/4）+1=3
-            #aa = global_step.eval(session=session)
-            if global_data_index > len(data)-BATCH_SIZE or step == 0:
-                words = read_data(client,reverse_path_file_dict[current_num])
+            # aa = global_step.eval(session=session)
+            if (global_data_index >= len(data)-BATCH_SIZE) or step == 0:
+                global_data_index = 0
                 current_num += 1
-                if current_num > start_num + one_com_num - 1:
+                if current_num <= start_num + one_com_num:
+                    current_hdfs_path = reverse_path_file_dict[current_num]
+                    words = read_data(client,current_hdfs_path)
+                else:
                     current_num = start_num
-                    circle_num +=1
+                    current_hdfs_path = reverse_path_file_dict[current_num]
+                    words = read_data(client,current_hdfs_path)
+                    circle_num += 1
+
                 # 对word进行编码
                 data = build_dataset(words,dictionary)
                 del (words)
@@ -451,7 +457,7 @@ def main(_):
                 # loss_all.append(average_loss)
                 print("全局训练步数: ", global_step.eval(session=session))
                 print("本机 Average loss at 本机训练步数为: ", step, "    平均损失值: ", average_loss)
-                print("本机当前计算文件",reverse_path_file_dict[current_num],"本机词语训练位置: ", global_data_index)  # 词语训练位置
+                print("本机当前计算文件",current_hdfs_path,"本机词语训练位置: ", global_data_index)  # 词语训练位置
                 print("本机当前文件总共词汇量: ", len(data) , "    本机训练第几轮: ",circle_num)
                 average_loss = 0
                 learn_rate = session.run(learning_rate)
