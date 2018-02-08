@@ -24,7 +24,7 @@ def read_data(client,filename):
         data = []
         counter = 0
         for line in f:
-            line = line.strip('\n').strip('')
+            line = line.strip('\n').strip('').strip('\r')
             if line != "":
                 counter += 1
                 data_tmp = [word for word in line.split(" ") if word != '']

@@ -65,8 +65,10 @@ RATE_DECAY = 50000
 SAVE_NPY = 'save_npy'
 # 图片保存路径
 SAVE_PIC = 'save_pic'
+# 分布式集群机器数量
+NUM_COMPUTER = 2
 # hadoop中的路径
-NUM_COMPUTER = 5
+
 HADOOP_IP_PORT = "http://192.168.1.160:50070"
 HADOOP_PATH = ["/hadoopTest/", "/hadoopTest1/", "/hadoopTest2/"]
 ###############################
@@ -93,7 +95,7 @@ def read_data(client,filename):
         data = []
         counter = 0
         for line in f:
-            line = line.strip('\n').strip('')
+            line = line.strip('\n').strip('').strip('\r')
             if line != "":
                 counter += 1
                 data_tmp = [word for word in line.split(" ") if word != '']
