@@ -368,8 +368,8 @@ def main(_):
         session = sv.prepare_or_wait_for_session(server.target, config=sess_config)
         # 对所取文件循环
         one_com_num = len(reverse_path_file_dict) // NUM_COMPUTER
-        start_num = FLAGS.task_id * one_com_num + 1
-        current_num = start_num - 1
+        start_num = FLAGS.task_id  + 1
+        current_num = start_num - NUM_COMPUTER
         client = hdfs.Client(HADOOP_IP_PORT, root="/", timeout=500, session=False)
         # 轮数
         circle_num = 1
@@ -392,8 +392,8 @@ def main(_):
             # aa = global_step.eval(session=session)
             if (global_data_index >= len(data)-BATCH_SIZE) or step == 0:
                 global_data_index = 0
-                current_num += 1
-                if current_num <= start_num + one_com_num:
+                current_num += NUM_COMPUTER
+                if current_num <= len(reverse_path_file_dict):
                     current_hdfs_path = reverse_path_file_dict[current_num]
                     words = read_data(client,current_hdfs_path)
                 else:
