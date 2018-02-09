@@ -78,7 +78,7 @@ NUM_COMPUTER = 2
 # hadoop中的路径
 
 HADOOP_IP_PORT = "http://192.168.1.160:50070"
-HADOOP_PATH = ["/hadoopTest/", "/hadoopTest1/", "/hadoopTest2/"]
+HADOOP_PATH = ["/hadoopTestNYG/", "/hadoopTest1/", "/hadoopTest2/"]
 ###############################
 BATCH_SIZE = 128  # 一次训练词的数量
 EMBEDDING_SIZE = 128  # Dimension of the embedding vector. 词向量维度
