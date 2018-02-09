@@ -72,9 +72,11 @@ if __name__ == '__main__':
             count = [['UNK', -1]]
             all_tmp_collectionsCounter = collections.Counter()
             all_tmp_collectionsCounter = collections.Counter(words)
+            print('all_tmp_collectionsCounter: ', len(all_tmp_collectionsCounter))
             collectionsCounter.update(all_tmp_collectionsCounter)
-            collectionsCounter_dict = collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
+            collectionsCounter_dict = collectionsCounter.most_common(VOCABULARY_SIZE + 200)
             collectionsCounter = collections.Counter(collectionsCounter_dict)
+            print('collectionsCounter: ', len(collectionsCounter))
             # collectionsDict = all_tmp_collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
             # collectionsCounter = collections.Counter(collectionsDict)
             # collectionsCounter = sum((collectionsCounter,collections.Counter(words)),collections.Counter())
