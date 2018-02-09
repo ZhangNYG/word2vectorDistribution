@@ -70,7 +70,14 @@ if __name__ == '__main__':
             words = read_data(client, file_path + file_loop)
             print("文件路径名称： ", file_path + file_loop, '    Data size: ', len(words))
             count = [['UNK', -1]]
-            collectionsCounter = sum((collectionsCounter,collections.Counter(words)),collections.Counter())
+            all_tmp_collectionsCounter = collections.Counter()
+            all_tmp_collectionsCounter = collections.Counter(words)
+            collectionsCounter.update(all_tmp_collectionsCounter)
+            collectionsCounter_dict = collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
+            collectionsCounter = collections.Counter(collectionsCounter_dict)
+            # collectionsDict = all_tmp_collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
+            # collectionsCounter = collections.Counter(collectionsDict)
+            # collectionsCounter = sum((collectionsCounter,collections.Counter(words)),collections.Counter())
     count, dictionary, reverse_dictionary = build_dic(collectionsCounter)
     # 保存字典
     f_dict = open('dictionary_data.txt', 'w', encoding='utf-8')
