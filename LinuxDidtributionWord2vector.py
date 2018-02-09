@@ -49,7 +49,7 @@ from matplotlib.font_manager import FontProperties
 # matplotlib.use('Agg')
 
 # 运行前注意，找到可用的字体
-font = FontProperties(fname="/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf")
+font = FontProperties(fname="/usr/share/fonts/chinese/simsun.ttc")
 
 filename = "135MB.txt"
 
@@ -62,23 +62,24 @@ tf.app.flags.DEFINE_integer('task_id', 0, '当前程序的任务ID，参数服�
 ###############################
 # 一些必要设置参数
 # 字典中的词语数量
-VOCABULARY_SIZE = 2000
+VOCABULARY_SIZE = 100000
 # 保存LOG与参数保存时间间隔
-SAVE_LOG_TIME = 60  # 秒为单位
+SAVE_LOG_TIME = 3600  # 秒为单位 3600一小时
 # 保存LOG与参数相对路劲
 SAVE_LOG_PATH = 'save_log'
 # 学习率衰减一次所需全局步数 0.99的衰减率
-RATE_DECAY = 50000
+RATE_DECAY = 500000
 # 词向量保存路径
 SAVE_NPY = 'save_npy'
 # 图片保存路径
 SAVE_PIC = 'save_pic'
 # 分布式集群机器数量
-NUM_COMPUTER = 2
+NUM_COMPUTER = 5
 # hadoop中的路径
 
-HADOOP_IP_PORT = "http://192.168.1.160:50070"
-HADOOP_PATH = ["/hadoopTestNYG/", "/hadoopTest1/", "/hadoopTest2/"]
+HADOOP_IP_PORT = "http://10.1.0.41:50070"
+HADOOP_PATH = ["/user/cdh/guojie/full_table_news/output/", "/user/cdh/guojie/full_table_weibo/output/", "/user/cdh"
+                                                                                                        "/guojie/full_table_weixin/output/"]
 ###############################
 BATCH_SIZE = 128  # 一次训练词的数量
 EMBEDDING_SIZE = 128  # Dimension of the embedding vector. 词向量维度
@@ -108,14 +109,15 @@ def read_data(client,filename):
             if line not in data_settmp:
                 data_settmp.add(line)
                 line = line.strip('\n').strip('').strip('\r')
+                data_tmp = []
                 if line != "":
                     counter += 1
                     data_tmp = [word for word in line.split(" ") if word != '']
                 data.extend(data_tmp)
                 # print(data_tmp)
-        print(counter) #9829
+        print('counter: ',counter) #9829
+        print('data-words: ', len(data))
     return data
-
 ############################################################################
 # 创建文件夹
 def mkdir(path):
@@ -496,7 +498,7 @@ def main(_):
                         print(log_str)
 
                 final_embeddings = normalized_embeddings.eval(session=session)
-                # 每1万步保存一次词向量 和 前500词汇图片
+                # 每1万步保存一次词向量
                 if step % 10000 == 0:
                     if step != 0:
                         np.save(SAVE_NPY + "/vectorForWords.npy", final_embeddings)
@@ -517,16 +519,26 @@ def main(_):
                                   "embeddings.")
 
                 # 每100万步保存一次全部词汇图片
-                if step % 10000 == 0:
+                if step % 1000000 == 0:
                     if step != 0:
-                        try:
-                            for i_word in xrange(1, VOCABULARY_SIZE - 1000, 500):  # 总字典词汇量减去1000
-                                low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
-                                labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
-                                plot_with_labels(low_dim_embs, labels,
-                                                 filename=SAVE_PIC + '/words-start-' + str(i_word) + '-picture')
-                        except ImportError:
-                            print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
+                        if VOCABULARY_SIZE >= 10000:
+                            try:
+                                for i_word in xrange(1, 10000 - 1000, 500):  # 总字典词汇量减去1000
+                                    low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
+                                    labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
+                                    plot_with_labels(low_dim_embs, labels,
+                                                     filename=SAVE_PIC + '/words-start-' + str(i_word) + '-picture')
+                            except ImportError:
+                                print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
+                        if VOCABULARY_SIZE >= 100000:
+                            try:
+                                for i_word in xrange(90000, 100000 - 1000, 500):  # 总字典词汇量减去1000
+                                    low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
+                                    labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
+                                    plot_with_labels(low_dim_embs, labels,
+                                                     filename=SAVE_PIC + '/words-start-' + str(i_word) + '-picture')
+                            except ImportError:
+                                print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
         sv.stop()
         # print("Step5 over")
         # print(type(final_embeddings))

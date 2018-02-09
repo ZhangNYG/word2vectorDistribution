@@ -12,12 +12,14 @@ from six.moves import xrange
 import hdfs
 import collections
 import WindowsDidtributionWord2vector
+
 ##############################
 # 参数设置
 VOCABULARY_SIZE = WindowsDidtributionWord2vector.VOCABULARY_SIZE
 # hadoop中的路径
 HADOOP_IP_PORT = WindowsDidtributionWord2vector.HADOOP_IP_PORT
 HADOOP_PATH = WindowsDidtributionWord2vector.HADOOP_PATH
+
 
 def read_data(client,filename):
     with client.read(filename,encoding='utf-8') as f:
@@ -28,12 +30,14 @@ def read_data(client,filename):
             if line not in data_settmp:
                 data_settmp.add(line)
                 line = line.strip('\n').strip('').strip('\r')
+                data_tmp = []
                 if line != "":
                     counter += 1
                     data_tmp = [word for word in line.split(" ") if word != '']
                 data.extend(data_tmp)
                 # print(data_tmp)
-        print(counter) #9829
+        print('counter: ',counter) #9829
+        print('data-words: ', len(data))
     return data
 
 
@@ -72,11 +76,11 @@ if __name__ == '__main__':
             count = [['UNK', -1]]
             all_tmp_collectionsCounter = collections.Counter()
             all_tmp_collectionsCounter = collections.Counter(words)
-            print('all_tmp_collectionsCounter: ', len(all_tmp_collectionsCounter))
+            print('all_tmp_collectionsCounter: ',len(all_tmp_collectionsCounter))
             collectionsCounter.update(all_tmp_collectionsCounter)
-            collectionsCounter_dict = collectionsCounter.most_common(VOCABULARY_SIZE + 200)
+            collectionsCounter_dict = collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
             collectionsCounter = collections.Counter(collectionsCounter_dict)
-            print('collectionsCounter: ', len(collectionsCounter))
+            print('collectionsCounter: ',len(collectionsCounter))
             # collectionsDict = all_tmp_collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
             # collectionsCounter = collections.Counter(collectionsDict)
             # collectionsCounter = sum((collectionsCounter,collections.Counter(words)),collections.Counter())
@@ -99,7 +103,7 @@ if __name__ == '__main__':
 
 
 
-    #aaa = collectionsCounter
+    # aaa = collectionsCounter
 
     # 保存字典与统计数据
 

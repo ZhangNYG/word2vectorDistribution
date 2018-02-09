@@ -91,8 +91,8 @@ NUM_SAMPLED = 2  # Number of negative examples to sample. NUM_SAMPLED = 64  这�
 ###########################################################################
 # 数据不能直接读入要循环读取！！待做
 
-def read_data(client,filename):
-    with client.read(filename,encoding='utf-8') as f:
+def read_data(client, filename):
+    with client.read(filename, encoding='utf-8') as f:
         data = []
         counter = 0
         data_settmp = set()
@@ -100,13 +100,16 @@ def read_data(client,filename):
             if line not in data_settmp:
                 data_settmp.add(line)
                 line = line.strip('\n').strip('').strip('\r')
+                data_tmp = []
                 if line != "":
                     counter += 1
                     data_tmp = [word for word in line.split(" ") if word != '']
                 data.extend(data_tmp)
                 # print(data_tmp)
-        print(counter) #9829
+        print('counter: ', counter)  # 9829
+        print('data-words: ', len(data))
     return data
+
 
 ############################################################################
 # 创建文件夹
@@ -127,7 +130,7 @@ def mkdir(path):
 ##############################################################################
 # Step 2: Build the dictionary and replace rare words with UNK token.
 # 对文件进行编码
-def build_dataset(words,dictionary):
+def build_dataset(words, dictionary):
     data = list()
     unk_count = 0
     for word in words:
@@ -137,7 +140,7 @@ def build_dataset(words,dictionary):
             index = 0  # dictionary['UNK']
             unk_count += 1
         data.append(index)
-    #reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    # reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
     return data
 
 
@@ -372,7 +375,7 @@ def main(_):
         session = sv.prepare_or_wait_for_session(server.target, config=sess_config)
         # 对所取文件循环
         one_com_num = len(reverse_path_file_dict) // NUM_COMPUTER
-        start_num = FLAGS.task_id  + 1
+        start_num = FLAGS.task_id + 1
         current_num = start_num - NUM_COMPUTER
         client = hdfs.Client(HADOOP_IP_PORT, root="/", timeout=500, session=False)
         # 轮数
@@ -388,26 +391,26 @@ def main(_):
         step = 0
         while not sv.should_stop():
             #################################################
-                # 在这对文件进行读取操作
-                # 判断是否读取完成
-                # //返回商的整数部分
-                # 8个文件4台机器，start_num = 0*（8/4）+1=1
-                #                 start_num = 1*（8/4）+1=3
+            # 在这对文件进行读取操作
+            # 判断是否读取完成
+            # //返回商的整数部分
+            # 8个文件4台机器，start_num = 0*（8/4）+1=1
+            #                 start_num = 1*（8/4）+1=3
             # aa = global_step.eval(session=session)
-            if (global_data_index >= len(data)-BATCH_SIZE) or step == 0:
+            if (global_data_index >= len(data) - BATCH_SIZE) or step == 0:
                 global_data_index = 0
                 current_num += NUM_COMPUTER
                 if current_num <= len(reverse_path_file_dict):
                     current_hdfs_path = reverse_path_file_dict[current_num]
-                    words = read_data(client,current_hdfs_path)
+                    words = read_data(client, current_hdfs_path)
                 else:
                     current_num = start_num
                     current_hdfs_path = reverse_path_file_dict[current_num]
-                    words = read_data(client,current_hdfs_path)
+                    words = read_data(client, current_hdfs_path)
                     circle_num += 1
 
                 # 对word进行编码
-                data = build_dataset(words,dictionary)
+                data = build_dataset(words, dictionary)
                 del (words)
             # 输入数据，标签数据准备
             batch_inputs, batch_labels = generate_batch(
@@ -461,8 +464,8 @@ def main(_):
                 # loss_all.append(average_loss)
                 print("全局训练步数: ", global_step.eval(session=session))
                 print("本机 Average loss at 本机训练步数为: ", step, "    平均损失值: ", average_loss)
-                print("本机当前计算文件",current_hdfs_path,"本机词语训练位置: ", global_data_index)  # 词语训练位置
-                print("本机当前文件总共词汇量: ", len(data) , "    本机训练第几轮: ",circle_num)
+                print("本机当前计算文件", current_hdfs_path, "本机词语训练位置: ", global_data_index)  # 词语训练位置
+                print("本机当前文件总共词汇量: ", len(data), "    本机训练第几轮: ", circle_num)
                 average_loss = 0
                 learn_rate = session.run(learning_rate)
                 print("本机当前学习率: ", learn_rate, '\n')
@@ -509,36 +512,46 @@ def main(_):
                                   "embeddings.")
 
                 # 每100万步保存一次全部词汇图片
-                if step % 10000 == 0:
+                if step % 1000000 == 0:
                     if step != 0:
-                        try:
-                            for i_word in xrange(1, VOCABULARY_SIZE - 1000, 500):  # 总字典词汇量减去1000
-                                low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
-                                labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
-                                plot_with_labels(low_dim_embs, labels,
-                                                 filename=SAVE_PIC + '/words-start-' + str(i_word) + '-picture')
-                        except ImportError:
-                            print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
+                        if VOCABULARY_SIZE >= 10000:
+                            try:
+                                for i_word in xrange(1, 10000 - 1000, 500):  # 总字典词汇量减去1000
+                                    low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
+                                    labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
+                                    plot_with_labels(low_dim_embs, labels,
+                                                     filename=SAVE_PIC + '/words-start-' + str(i_word) + '-picture')
+                            except ImportError:
+                                print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
+                        if VOCABULARY_SIZE >= 100000:
+                            try:
+                                for i_word in xrange(90000, 100000 - 1000, 500):  # 总字典词汇量减去1000
+                                    low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
+                                    labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
+                                    plot_with_labels(low_dim_embs, labels,
+                                                     filename=SAVE_PIC + '/words-start-' + str(i_word) + '-picture')
+                            except ImportError:
+                                print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
         sv.stop()
         # print("Step5 over")
         # print(type(final_embeddings))
 
-    # numpy.save("filename.npy",a)
-    # 利用这种方法，保存文件的后缀名字一定会被置为.npy，这种格式最好只用
-    # numpy.load("filename")来读取。
-    # Step 6: Visualize the embeddings.
-    # 字典也要保存
-    # 保存
-    # dict_name = {1: {1: 2, 3: 4}, 2: {3: 4, 4: 5}}
-    # f = open('temp.txt', 'w')
-    # f.write(str(dict_name))
-    # f.close()
+        # numpy.save("filename.npy",a)
+        # 利用这种方法，保存文件的后缀名字一定会被置为.npy，这种格式最好只用
+        # numpy.load("filename")来读取。
+        # Step 6: Visualize the embeddings.
+        # 字典也要保存
+        # 保存
+        # dict_name = {1: {1: 2, 3: 4}, 2: {3: 4, 4: 5}}
+        # f = open('temp.txt', 'w')
+        # f.write(str(dict_name))
+        # f.close()
 
-    # 读取
-    # f = open('temp.txt', 'r')
-    # a = f.read()
-    # dict_name = eval(a)
-    # f.close()
+        # 读取
+        # f = open('temp.txt', 'r')
+        # a = f.read()
+        # dict_name = eval(a)
+        # f.close()
 
 
 if __name__ == "__main__":
