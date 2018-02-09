@@ -11,26 +11,29 @@
 from six.moves import xrange
 import hdfs
 import collections
-import WindowsDidtributionWord2vector
+import LinuxDidtributionWord2vector
 ##############################
 # 参数设置
-VOCABULARY_SIZE = WindowsDidtributionWord2vector.VOCABULARY_SIZE
+VOCABULARY_SIZE = LinuxDidtributionWord2vector.VOCABULARY_SIZE
 # hadoop中的路径
-HADOOP_IP_PORT = WindowsDidtributionWord2vector.HADOOP_IP_PORT
-HADOOP_PATH = WindowsDidtributionWord2vector.HADOOP_PATH
+HADOOP_IP_PORT = LinuxDidtributionWord2vector.HADOOP_IP_PORT
+HADOOP_PATH = LinuxDidtributionWord2vector.HADOOP_PATH
 
 def read_data(client,filename):
     with client.read(filename,encoding='utf-8') as f:
         data = []
         counter = 0
+        data_settmp = set()
         for line in f:
-            line = line.strip('\n').strip('').strip('\r')
-            if line != "":
-                counter += 1
-                data_tmp = [word for word in line.split(" ") if word != '']
-            data.extend(data_tmp)
-            # print(data_tmp)
-        print(counter)
+            if line not in data_settmp:
+                data_settmp.add(line)
+                line = line.strip('\n').strip('').strip('\r')
+                if line != "":
+                    counter += 1
+                    data_tmp = [word for word in line.split(" ") if word != '']
+                data.extend(data_tmp)
+                # print(data_tmp)
+        print(counter) #9829
     return data
 
 

@@ -70,7 +70,7 @@ NUM_COMPUTER = 2
 # hadoop中的路径
 
 HADOOP_IP_PORT = "http://192.168.1.160:50070"
-HADOOP_PATH = ["/hadoopTest/", "/hadoopTest1/", "/hadoopTest2/"]
+HADOOP_PATH = ["/hadoopTestNYG/", "/hadoopTest1/", "/hadoopTest2/"]
 ###############################
 BATCH_SIZE = 128  # 一次训练词的数量
 EMBEDDING_SIZE = 128  # Dimension of the embedding vector. 词向量维度
@@ -90,19 +90,23 @@ NUM_SAMPLED = 2  # Number of negative examples to sample. NUM_SAMPLED = 64  这�
 
 ###########################################################################
 # 数据不能直接读入要循环读取！！待做
+
 def read_data(client,filename):
     with client.read(filename,encoding='utf-8') as f:
         data = []
         counter = 0
+        data_settmp = set()
         for line in f:
-            line = line.strip('\n').strip('').strip('\r')
-            if line != "":
-                counter += 1
-                data_tmp = [word for word in line.split(" ") if word != '']
-            data.extend(data_tmp)
-            # print(data_tmp)
+            if line not in data_settmp:
+                data_settmp.add(line)
+                line = line.strip('\n').strip('').strip('\r')
+                if line != "":
+                    counter += 1
+                    data_tmp = [word for word in line.split(" ") if word != '']
+                data.extend(data_tmp)
+                # print(data_tmp)
+        print(counter) #9829
     return data
-
 
 ############################################################################
 # 创建文件夹
