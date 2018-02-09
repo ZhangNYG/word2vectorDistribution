@@ -28,6 +28,8 @@ import collections
 import os
 import math
 import random
+
+import hdfs
 import numpy as np
 import time
 from six.moves import urllib
@@ -36,15 +38,17 @@ import tensorflow as tf
 
 from sklearn.manifold import TSNE
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-#中文图片乱码解决
+# 中文图片乱码解决
 from matplotlib.font_manager import FontProperties
+
 # Force matplotlib to not use any Xwindows backend.
 
-#matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
-#运行前注意，找到可用的字体
+# 运行前注意，找到可用的字体
 font = FontProperties(fname="/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf")
 
 filename = "135MB.txt"
@@ -54,8 +58,6 @@ tf.app.flags.DEFINE_string('job_name', 'ps', '"ps"or"worker"这个是参数服�
 tf.app.flags.DEFINE_string('ps_hosts', '127.0.0.1:22222', '参数服务器列表，192.168.1.160:2222,192.168.1.161:1111')
 tf.app.flags.DEFINE_string('worker_hosts', '127.0.0.1:66662', '计算服务器，192.168.1.161:5555,192.168.162:6666')
 tf.app.flags.DEFINE_integer('task_id', 0, '当前程序的任务ID，参数服务器和计算服务器都是从0开始')
-
-
 
 ###############################
 # 一些必要设置参数
@@ -71,6 +73,12 @@ RATE_DECAY = 50000
 SAVE_NPY = 'save_npy'
 # 图片保存路径
 SAVE_PIC = 'save_pic'
+# 分布式集群机器数量
+NUM_COMPUTER = 2
+# hadoop中的路径
+
+HADOOP_IP_PORT = "http://192.168.1.160:50070"
+HADOOP_PATH = ["/hadoopTest/", "/hadoopTest1/", "/hadoopTest2/"]
 ###############################
 BATCH_SIZE = 128  # 一次训练词的数量
 EMBEDDING_SIZE = 128  # Dimension of the embedding vector. 词向量维度
@@ -83,25 +91,24 @@ NUM_SKIPS = 2  # How many times to reuse an input to generate a label.
 VALID_SIZE = 16  # Random set of words to evaluate similarity on.
 VALID_WINDOW = 100  # Only pick dev samples in the head of the distribution.
 VALID_EXAMPLES = np.random.choice(VALID_WINDOW, VALID_SIZE, replace=False)
-NUM_SAMPLED = 8  # Number of negative examples to sample. NUM_SAMPLED = 64  这个是负样本个数，正样本的个数
+NUM_SAMPLED = 2  # Number of negative examples to sample. NUM_SAMPLED = 64  这个是负样本个数，正样本的个数
 
 
 # 在这是1(labels的第二个维度)，
 
 ###########################################################################
 # 数据不能直接读入要循环读取！！待做
-def read_data(filename):
-    with open(filename, encoding='utf-8') as f:
+def read_data(client, filename):
+    with client.read(filename, encoding='utf-8') as f:
         data = []
         counter = 0
         for line in f:
-            line = line.strip('\n').strip('')
+            line = line.strip('\n').strip('').strip('\r')
             if line != "":
                 counter += 1
                 data_tmp = [word for word in line.split(" ") if word != '']
             data.extend(data_tmp)
             # print(data_tmp)
-        print(counter)
     return data
 
 
@@ -116,20 +123,15 @@ def mkdir(path):
     if not isExists:
         # 如果不存在就创建目录
         os.makedirs(path)
-        print(path+" 路径创建成功")
+        print(path + " 路径创建成功")
     else:
-        print(path+" 路径已存在")
+        print(path + " 路径已存在")
 
 
 ##############################################################################
 # Step 2: Build the dictionary and replace rare words with UNK token.
-# 建立数据字典
-def build_dataset(words):
-    count = [['UNK', -1]]
-    count.extend(collections.Counter(words).most_common(VOCABULARY_SIZE - 1))
-    dictionary = dict()
-    for word, _ in count:
-        dictionary[word] = len(dictionary)
+# 对文件进行编码
+def build_dataset(words, dictionary):
     data = list()
     unk_count = 0
     for word in words:
@@ -139,9 +141,8 @@ def build_dataset(words):
             index = 0  # dictionary['UNK']
             unk_count += 1
         data.append(index)
-    count[0][1] = unk_count
-    reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-    return data, count, dictionary, reverse_dictionary
+    # reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    return data
 
 
 ####################################################################################
@@ -209,33 +210,6 @@ def plot_with_labels(low_dim_embs, labels, filename):
 ############################################################################
 
 def main(_):
-    # 读取数据
-    words = read_data(filename)
-    print('Data size', len(words))
-    # 统计数据，建立字典
-    data, count, dictionary, reverse_dictionary = build_dataset(words)
-    # 保存字典
-    f_dict = open('dictionary_data.txt', 'w', encoding='utf-8')
-    f_dict.write(str(reverse_dictionary))
-    f_dict.close()
-    # 保存统计字频
-    f_count = open('count_data.txt', 'w', encoding='utf-8')
-    f_count.write(str(count))
-    f_count.close()
-
-    del words  # Hint to reduce memory.
-    print('Most common words (+UNK)', count[:5])
-    print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
-    # 全局变量 文件读取 词汇量位置
-    global global_data_index
-    global_data_index = 0
-    batch, labels = generate_batch(data=data, batch_size=8, num_skips=2, skip_window=1)
-    for i in range(8):
-        print(batch[i], reverse_dictionary[batch[i]],
-              '->', labels[i, 0], reverse_dictionary[labels[i, 0]])
-    # 上面代码只是给出一个例子
-    # 下面参数的给出才是正式模型的构建的开始
-
     ps_hosts = FLAGS.ps_hosts.split(',')
     worker_hosts = FLAGS.worker_hosts.split(',')
     cluster = tf.train.ClusterSpec({"ps": ps_hosts, "worker": worker_hosts})
@@ -245,6 +219,74 @@ def main(_):
     if FLAGS.job_name == 'ps':
         # 参数服务器就运行到这
         server.join()
+    # # 读取数据
+    # words = read_data(filename)
+    # print('Data size', len(words))
+    # # 统计数据，建立字典
+    # data, count, dictionary, reverse_dictionary = build_dataset(words)
+    # # 保存字典
+    # f_dict = open('dictionary_data.txt', 'w', encoding='utf-8')
+    # f_dict.write(str(reverse_dictionary))
+    # f_dict.close()
+    # # 保存统计字频
+    # f_count = open('count_data.txt', 'w', encoding='utf-8')
+    # f_count.write(str(count))
+    # f_count.close()
+    #
+    # del words  # Hint to reduce memory.
+    # print('Most common words (+UNK)', count[:5])
+    # print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
+
+    # 字典数据和统计数据读入
+    # 判断字典路径是否存在
+    isExists_dic = os.path.exists('dictionary_data.txt')
+    if not isExists_dic:
+        # 如果不存在就提醒不存在字典
+        print('dictionary_data.txt  ' + " 字典文件不存在！！")
+        return " 字典文件不存在！！"
+    else:
+        f = open('dictionary_data.txt', 'r', encoding='utf-8')
+        dictionary_file = f.read()
+        reverse_dictionary = eval(dictionary_file)
+        dictionary = dict(zip(reverse_dictionary.values(), reverse_dictionary.keys()))
+        f.close()
+    # 判断统计数据路径是否存在
+    isExists_count = os.path.exists('count_data.txt')
+    if not isExists_count:
+
+        print('count_data.txt  ' + " 统计文件不存在！！")
+        return " 统计文件不存在！！"
+    else:
+        f = open('count_data.txt', 'r', encoding='utf-8')
+        count_file = f.read()
+        count = eval(count_file)
+        f.close()
+    # 判断hadoop数据路径是否存在
+    isExists_reverse_path_file_dict = os.path.exists('reverse_path_file_dict.txt')
+    if not isExists_reverse_path_file_dict:
+
+        print('reverse_path_file_dict.txt  ' + " hadoop数据文件路径不存在！！")
+        return " hadoop路径文件不存在！！"
+    else:
+        f = open('reverse_path_file_dict.txt', 'r', encoding='utf-8')
+        reverse_path_file_dict_file = f.read()
+        reverse_path_file_dict = eval(reverse_path_file_dict_file)
+        f.close()
+
+    # # data是编完码的数据
+    # print('Most common words (+UNK)', count[:5])  # Most common words (+UNK) [['UNK', 169551], ('中国', 32087), ('发展',
+    # #  19275), ('人', 11577), ('工作', 10957)]
+    # print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])  # Sample data [2379, 36, 0, 2590, 78,
+    # #  147, 729, 1419, 0, 3851] ['-', '上海', 'UNK', '实业', '有限公司', '优势', '供应', '机械', 'UNK', '配件']
+    # # 全局变量 文件读取 词汇量位置
+    # global global_data_index
+    # global_data_index = 0
+    # batch, labels = generate_batch(data=data, batch_size=8, num_skips=2, skip_window=1)
+    # for i in range(8):
+    #     print(batch[i], reverse_dictionary[batch[i]],
+    #           '->', labels[i, 0], reverse_dictionary[labels[i, 0]])
+    # 上面代码只是给出一个例子
+    # 下面参数的给出才是正式模型的构建的开始
 
     # 指定计算服务器设备
     with tf.device(tf.train.replica_device_setter(
@@ -332,14 +374,52 @@ def main(_):
         # server.target: To create a tf.Session that connects to this server, return:A string containing a session
         # target for this server.
         session = sv.prepare_or_wait_for_session(server.target, config=sess_config)
+        # 对所取文件循环
+        one_com_num = len(reverse_path_file_dict) // NUM_COMPUTER
+        start_num = FLAGS.task_id + 1
+        current_num = start_num - NUM_COMPUTER
+        client = hdfs.Client(HADOOP_IP_PORT, root="/", timeout=500, session=False)
+        # 轮数
+        circle_num = 1
+        # 在一个文件中读取到的词汇位置
+
+        global global_data_index
+        global_data_index = 0
+        data = []
         # 记录平均损失
         average_loss = 0
         # 步数记录
         step = 0
         while not sv.should_stop():
+            #################################################
+            # 在这对文件进行读取操作
+            # 判断是否读取完成
+            # //返回商的整数部分
+            # 8个文件4台机器，start_num = 0*（8/4）+1=1
+            #                 start_num = 1*（8/4）+1=3
+            # aa = global_step.eval(session=session)
+            if (global_data_index >= len(data) - BATCH_SIZE) or step == 0:
+                global_data_index = 0
+                current_num += NUM_COMPUTER
+                if current_num <= len(reverse_path_file_dict):
+                    current_hdfs_path = reverse_path_file_dict[current_num]
+                    words = read_data(client, current_hdfs_path)
+                else:
+                    current_num = start_num
+                    current_hdfs_path = reverse_path_file_dict[current_num]
+                    words = read_data(client, current_hdfs_path)
+                    circle_num += 1
+
+                # 对word进行编码
+                data = build_dataset(words, dictionary)
+                del (words)
             # 输入数据，标签数据准备
             batch_inputs, batch_labels = generate_batch(
                 data, BATCH_SIZE, NUM_SKIPS, SKIP_WINDOW)
+            # 读取完成之后跳转下一个文件
+
+            #################################################
+
             feed_dict = {train_inputs: batch_inputs, train_labels: batch_labels}
             _, loss_val = session.run([optimizer, loss], feed_dict=feed_dict)
             step += 1
@@ -385,8 +465,8 @@ def main(_):
                 # loss_all.append(average_loss)
                 print("全局训练步数: ", global_step.eval(session=session))
                 print("本机 Average loss at 本机训练步数为: ", step, "    平均损失值: ", average_loss)
-                print("本机词语训练位置: ", global_data_index, "    本机总共需词汇量: ", "TODO 求出词汇量", "    本机训练第几轮: ",
-                      'TODO')  # 词语训练位置
+                print("本机当前计算文件", current_hdfs_path, "本机词语训练位置: ", global_data_index)  # 词语训练位置
+                print("本机当前文件总共词汇量: ", len(data), "    本机训练第几轮: ", circle_num)
                 average_loss = 0
                 learn_rate = session.run(learning_rate)
                 print("本机当前学习率: ", learn_rate, '\n')
@@ -415,7 +495,7 @@ def main(_):
                 # 每1万步保存一次词向量 和 前500词汇图片
                 if step % 10000 == 0:
                     if step != 0:
-                            np.save(SAVE_NPY + "/vectorForWords.npy", final_embeddings)
+                        np.save(SAVE_NPY + "/vectorForWords.npy", final_embeddings)
 
                 if step % 10000 == 0 and step <= 50000:
                     if step != 0:
