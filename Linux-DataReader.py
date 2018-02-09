@@ -28,12 +28,14 @@ def read_data(client,filename):
             if line not in data_settmp:
                 data_settmp.add(line)
                 line = line.strip('\n').strip('').strip('\r')
+                data_tmp = []
                 if line != "":
                     counter += 1
                     data_tmp = [word for word in line.split(" ") if word != '']
                 data.extend(data_tmp)
                 # print(data_tmp)
-        print(counter) #9829
+        print('counter: ',counter) #9829
+        print('data-words: ', len(data))
     return data
 
 
