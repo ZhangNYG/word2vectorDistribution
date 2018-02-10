@@ -54,7 +54,7 @@ tf.app.flags.DEFINE_integer('task_id', 0, '当前程序的任务ID，参数服�
 ###############################
 # 一些必要设置参数
 # 字典中的词语数量
-VOCABULARY_SIZE = 2000
+VOCABULARY_SIZE = 100000
 # 保存LOG与参数保存时间间隔
 SAVE_LOG_TIME = 60  # 秒为单位
 # 保存LOG与参数相对路劲
@@ -70,7 +70,8 @@ NUM_COMPUTER = 2
 # hadoop中的路径
 
 HADOOP_IP_PORT = "http://192.168.1.160:50070"
-HADOOP_PATH = ["/hadoopTestNYG/", "/hadoopTest1/", "/hadoopTest2/"]
+HADOOP_PATH = ["/user/cdh/guojie/full_table_news/output/", "/user/cdh/guojie/full_table_weibo/output/", "/user/cdh"
+                                                                                                        "/guojie/full_table_weixin/output/"]
 ###############################
 BATCH_SIZE = 128  # 一次训练词的数量
 EMBEDDING_SIZE = 128  # Dimension of the embedding vector. 词向量维度

@@ -1,6 +1,6 @@
 # -*-coding:utf-8 -*-
 
-
+# 这个版本相当于返回了之前没有减少counter的版本，但是解决了 变量没有定义的问题！！！
 # ***************Reader For Chinese**********************#
 # Revised on January 25, 2018 by
 # Author: XianjieZhang
@@ -72,16 +72,8 @@ if __name__ == '__main__':
             words = read_data(client, file_path + file_loop)
             print("文件路径名称： ", file_path + file_loop, '    Data size: ', len(words))
             count = [['UNK', -1]]
-            all_tmp_collectionsCounter = collections.Counter()
-            all_tmp_collectionsCounter = collections.Counter(words)
-            print('all_tmp_collectionsCounter: ',len(all_tmp_collectionsCounter))
-            collectionsCounter.update(all_tmp_collectionsCounter)
-            collectionsCounter_dict = collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
-            collectionsCounter = collections.Counter(collectionsCounter_dict)
+            collectionsCounter = sum((collectionsCounter,collections.Counter(words)),collections.Counter())
             print('collectionsCounter: ',len(collectionsCounter))
-            # collectionsDict = all_tmp_collectionsCounter.most_common(VOCABULARY_SIZE + 20000)
-            # collectionsCounter = collections.Counter(collectionsDict)
-            # collectionsCounter = sum((collectionsCounter,collections.Counter(words)),collections.Counter())
     count, dictionary, reverse_dictionary = build_dic(collectionsCounter)
     # 保存字典
     f_dict = open('dictionary_data.txt', 'w', encoding='utf-8')
