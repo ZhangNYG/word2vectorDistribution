@@ -74,6 +74,19 @@ if __name__ == '__main__':
             count = [['UNK', -1]]
             collectionsCounter = sum((collectionsCounter,collections.Counter(words)),collections.Counter())
             print('collectionsCounter: ',len(collectionsCounter))
+    # 保存collectionsCounter
+    dict_all_counter = dict(collectionsCounter)
+    f_all_dict = open('dict_all_counter.txt', 'w', encoding='utf-8')
+    f_all_dict.write(str(dict_all_counter))
+    f_all_dict.close()
+    # 保存所有的计数
+    all_words_num = sum(collectionsCounter.values())
+    print('所有文件总共字数: ',all_words_num)
+    f_words_sum = open('sum_all_words','w',encoding='utf-8')
+    f_words_sum.write('所有文件总共字数: ')
+    f_words_sum.write(str(all_words_num))
+    f_words_sum.close()
+    # 利用collectionsCounter生成字典
     count, dictionary, reverse_dictionary = build_dic(collectionsCounter)
     # 保存字典
     f_dict = open('dictionary_data.txt', 'w', encoding='utf-8')
