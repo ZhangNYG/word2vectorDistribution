@@ -68,7 +68,7 @@ SAVE_LOG_TIME = 3600  # 秒为单位 3600一小时
 # 保存LOG与参数相对路劲
 SAVE_LOG_PATH = 'save_log'
 # 学习率衰减一次所需全局步数 0.99的衰减率
-RATE_DECAY = 500000
+RATE_DECAY = 1472800 #500000 四台电脑6个小时衰减一次
 # 词向量保存路径
 SAVE_NPY = 'save_npy'
 # 图片保存路径
@@ -523,6 +523,7 @@ def main(_):
                     if step != 0:
                         if VOCABULARY_SIZE >= 10000:
                             try:
+                                tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
                                 for i_word in xrange(1, 10000 - 1000, 500):  # 总字典词汇量减去1000
                                     low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
                                     labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
@@ -532,6 +533,7 @@ def main(_):
                                 print("Please install sklearn, matplotlib, and scipy to visualize embeddings.")
                         if VOCABULARY_SIZE >= 100000:
                             try:
+                                tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
                                 for i_word in xrange(90000, 100000 - 1000, 500):  # 总字典词汇量减去1000
                                     low_dim_embs = tsne.fit_transform(final_embeddings[i_word:i_word + 500, :])
                                     labels = [reverse_dictionary[i] for i in xrange(i_word, i_word + 500)]
