@@ -496,10 +496,10 @@ def main(_):
                             close_word = reverse_dictionary[nearest[k]]
                             log_str = "%s   %s ," % (log_str, close_word)
                         print(log_str)
-
-                final_embeddings = normalized_embeddings.eval(session=session)
-                # 每1万步保存一次词向量
                 if step % 10000 == 0:
+                    final_embeddings = normalized_embeddings.eval(session=session)
+                # 每1万步保存一次词向量
+                # if step % 10000 == 0:
                     if step != 0:
                         np.save(SAVE_NPY + "/vectorForWords.npy", final_embeddings)
 
